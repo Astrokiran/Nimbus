@@ -66,12 +66,6 @@ func (n *Notification) StreamNotifications(w http.ResponseWriter, r *http.Reques
 					closeChan <- struct{}{}
 				}
 				time.Sleep(100 * time.Millisecond) // Wait for 100ms before sending the next event
-				// data := map[string]string{"event": fmt.Sprintf("Event at %s", time.Now().Format(time.RFC3339))}
-				// json, _ := json.Marshal(data)
-				// fmt.Fprintf(w, "data: %s\n\n", string(json))
-				// fmt.Printf("Sending data %s", string(json))
-				// w.(http.Flusher).Flush()
-				// time.Sleep(10 * time.Second) // Adjust the interval as needed
 			}
 		}
 	}()
