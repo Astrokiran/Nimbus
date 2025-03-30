@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/astrokiran/nimbus/internal/common/database/migration"
 	"github.com/go-jet/jet/v2/postgres"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -25,8 +26,9 @@ var PostgresDialect = Dialect{
 }
 
 type Database struct {
-	Conn    *sqlx.DB
-	Dialect Dialect
+	Conn     *sqlx.DB
+	Dialect  Dialect
+	Migrator *migration.MigrationManager
 }
 
 type Config struct {
@@ -34,6 +36,7 @@ type Config struct {
 	MaxOpenConns    int
 	MaxIdleConns    int
 	ConnMaxLifetime time.Duration
+	Migration       migration.Config
 }
 
 func NewDatabase(cfg Config) (*Database, error) {
@@ -53,11 +56,37 @@ func NewDatabase(cfg Config) (*Database, error) {
 	// Set the maximum lifetime of a connection.
 	db.SetConnMaxLifetime(cfg.ConnMaxLifetime)
 
-	return &Database{Conn: db, Dialect: PostgresDialect}, nil
+	database := &Database{
+		Conn:    db,
+		Dialect: PostgresDialect,
+	}
+
+	// Initialize migration manager if migrations are enabled
+	if cfg.Migration.Enabled {
+		migrator, err := migration.NewMigrationManager(db, cfg.Migration)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize migration manager: %w", err)
+		}
+		database.Migrator = migrator
+
+		// Run auto-migration if enabled
+		if cfg.Migration.AutoMigrate {
+			if err := migrator.AutoMigrate(ctx); err != nil {
+				return nil, fmt.Errorf("failed to run auto-migrations: %w", err)
+			}
+		}
+	}
+
+	return database, nil
 }
 
-// Close gracefully shuts down the database connection.
+// Close gracefully shuts down the database connection and migration manager.
 func (d *Database) Close() error {
+	if d.Migrator != nil {
+		if err := d.Migrator.Close(); err != nil {
+			return fmt.Errorf("failed to close migration manager: %w", err)
+		}
+	}
 	if d.Conn != nil {
 		return d.Conn.Close()
 	}
