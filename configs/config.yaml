@@ -1,0 +1,15 @@
+server:
+  port: 8080
+  read_timeout_seconds: 15
+  write_timeout_seconds: 15
+  idle_timeout_seconds: 60
+
+database:
+  dsn: "postgresql://postgres:postgres@localhost:5432/nimbus_v2?sslmode=disable" # User: postgres, Database: nimbus_v2
+  log_level: "info" # GORM log level: silent, error, warn, info
+  migrate_on_start: true
+  use_auto_migrate: false # Set to true to use GORM's AutoMigrate instead of SQL migrations
+
+logger:
+  level: "info" # Log levels: debug, info, warn, error, fatal, panic
+  format: "json" # Or "text" 
