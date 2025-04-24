@@ -24,6 +24,17 @@ type Config struct {
 		Level  string `mapstructure:"level"`
 		Format string `mapstructure:"format"`
 	}
+	Auth struct {
+		Jwt struct {
+			Secret              string `mapstructure:"secret"`
+			AccessExpiryMinutes int    `mapstructure:"access_expiry_minutes"`
+			RefreshExpiryDays   int    `mapstructure:"refresh_expiry_days"`
+		} `mapstructure:"jwt"`
+		Otp struct {
+			TestModeEnabled bool   `mapstructure:"test_mode_enabled"`
+			TestValue       string `mapstructure:"test_value"`
+		} `mapstructure:"otp"`
+	} `mapstructure:"auth"`
 }
 
 // LoadConfig reads configuration from file or environment variables.
@@ -47,6 +58,13 @@ func LoadConfig(path string) (*Config, error) {
 	viper.SetDefault("database.use_auto_migrate", false) // Default to SQL migrations for backward compatibility
 	viper.SetDefault("logger.level", "info")
 	viper.SetDefault("logger.format", "json")
+
+	// Set Auth defaults
+	viper.SetDefault("auth.jwt.secret", "your-very-secret-key") // PLEASE CHANGE THIS IN PRODUCTION!
+	viper.SetDefault("auth.jwt.access_expiry_minutes", 15)
+	viper.SetDefault("auth.jwt.refresh_expiry_days", 7)
+	viper.SetDefault("auth.otp.test_mode_enabled", false) // Secure default
+	viper.SetDefault("auth.otp.test_value", "123456")     // Default test OTP
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {

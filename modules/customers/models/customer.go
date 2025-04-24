@@ -10,7 +10,8 @@ import (
 type Customer struct {
 	// gorm.Model                // Includes ID, CreatedAt, UpdatedAt, DeletedAt
 	CustomerID     uint           `gorm:"primaryKey;column:customer_id" json:"customer_id"`
-	CreatedAt      time.Time      `json:"-"` // Exclude GORM timestamps from direct JSON marshal if needed
+	UserID         uint           `gorm:"index;not null" json:"user_id"` // Foreign key to users.User
+	CreatedAt      time.Time      `json:"-"`                             // Exclude GORM timestamps from direct JSON marshal if needed
 	UpdatedAt      time.Time      `json:"-"`
 	DeletedAt      gorm.DeletedAt `gorm:"index" json:"-"`
 	AreaCode       string         `gorm:"type:varchar(10);not null;uniqueIndex:idx_customer_phone" validate:"required"`
@@ -25,6 +26,13 @@ type Customer struct {
 	State          string         `gorm:"type:varchar(100)"`
 	Country        string         `gorm:"type:varchar(100)"`
 	Pincode        string         `gorm:"type:varchar(20)"`
+
+	// Auth related fields
+	OtpSecret       string     `json:"-"` // Store encrypted
+	OtpGeneratedAt  *time.Time `json:"-"`
+	OtpAttemptCount int        `gorm:"default:0" json:"-"`
+	IsOtpBlocked    bool       `gorm:"default:false" json:"-"`
+	IsActive        bool       `gorm:"default:true" json:"-"`
 }
 
 // TableName specifies the table name for the Customer model.

@@ -1,0 +1,18 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Project Structure and Dependency Injection
+
+This project uses a modular structure with feature-specific modules located in the `modules/` directory (e.g., `guides`, `customers`, `pricing`, `users`).
+
+Each module typically contains subdirectories for:
+*   `handler`: HTTP handlers (using Chi router)
+*   `service`: Business logic layer
+*   `repository`: Data access layer (using GORM)
+*   `models`: Database domain models
+*   `migrations`: Database migration files (`*.up.sql`, `*.down.sql`)
+*   `dto`: Data Transfer Objects used for API responses (e.g., within `modules/guides/dto/`)
+
+Dependency Injection (DI) and module registration are primarily handled in [cmd/server/routes/routes.go](mdc:cmd/server/routes/routes.go). This file instantiates repositories and services, injects dependencies (like the database connection and other services), and registers module-specific routes.

@@ -1,0 +1,407 @@
+openapi: 3.0.3
+info:
+  title: Nimbus Service API
+  description: API documentation for the Nimbus Service, including Authentication.
+  version: 1.0.0
+servers:
+  - url: /api/v1 # Assuming your base path is /api/v1
+    description: Local development server
+
+tags:
+  - name: Authentication
+    description: Endpoints for user login, OTP, token management, and logout.
+  - name: Admin
+    description: Administrative operations (requires admin privileges).
+
+paths:
+  /auth/otp/request:
+    post:
+      tags:
+        - Authentication
+      summary: Request OTP for Customer/Guide
+      description: Initiates the OTP generation and sending process for a Customer or Guide based on mobile number.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OtpRequest'
+      responses:
+        '200':
+          description: OTP requested successfully (or 202 Accepted if async).
+        '400':
+          description: Bad Request (Invalid input, validation failed).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (e.g., Account blocked).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found (Profile not found).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/otp/verify:
+    post:
+      tags:
+        - Authentication
+      summary: Verify OTP and Login (Customer/Guide)
+      description: Verifies the provided OTP and, if successful, logs in the user, returning access and refresh tokens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OtpVerifyRequest'
+      responses:
+        '200':
+          description: Login successful. Returns tokens.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          description: Bad Request (Invalid input, validation failed).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized (Invalid or expired OTP).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (e.g., Account blocked or inactive).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found (Profile not found).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/admin/login:
+    post:
+      tags:
+        - Authentication
+      summary: Admin Login
+      description: Authenticates an Admin user using email and password, returning access and refresh tokens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminLoginRequest'
+      responses:
+        '200':
+          description: Login successful. Returns tokens.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          description: Bad Request (Invalid input, validation failed).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized (Invalid credentials).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (e.g., Account inactive).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/token/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh Access Token
+      description: Uses a valid refresh token to obtain a new access token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Access token refreshed successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessTokenResponse'
+        '400':
+          description: Bad Request (Invalid input).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized (Invalid, expired, or revoked refresh token).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout User
+      description: Revokes the provided refresh token, effectively logging out the corresponding session.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+      responses:
+        '204':
+          description: Logout successful (Refresh token revoked).
+        '400':
+          description: Bad Request (Invalid input).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error (e.g., failed to update token status).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/users/{userId
+}/otp/unblock:
+    put:
+      tags:
+        - Admin
+      summary: Admin Unblock User OTP
+      description: Allows an authenticated Admin to unblock OTP login for a specified Customer or Guide user.
+      security:
+        - BearerAuth: [] # Requires Bearer token authentication
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The ID of the user (from the central 'users' table) to unblock.
+          schema:
+            type: integer
+            format: uint32 # Or uint64 depending on your ID type
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUnblockOtpRequest'
+      responses:
+        '204':
+          description: User OTP successfully unblocked.
+        '400':
+          description: Bad Request (Invalid userId format, invalid userType, validation failed).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized (Missing, invalid, or expired Bearer token).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (Caller is not an Admin).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found (Target user or their specific profile not found).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    OtpRequest:
+      type: object
+      required:
+        - areaCode
+        - mobileNumber
+        - userType
+      properties:
+        areaCode:
+          type: string
+          example: "+1"
+        mobileNumber:
+          type: string
+          example: "5551234567"
+        userType:
+          type: string
+          enum: [CUSTOMER, GUIDE
+]
+          example: CUSTOMER
+
+    OtpVerifyRequest:
+      type: object
+      required:
+        - areaCode
+        - mobileNumber
+        - otp
+        - userType
+        - deviceType
+      properties:
+        areaCode:
+          type: string
+          example: "+1"
+        mobileNumber:
+          type: string
+          example: "5551234567"
+        otp:
+          type: string
+          example: "123456"
+          minLength: 6
+          maxLength: 6
+        userType:
+          type: string
+          enum: [CUSTOMER, GUIDE
+]
+          example: CUSTOMER
+        deviceType:
+          type: string
+          enum: [MOBILE, WEB
+]
+          example: MOBILE
+
+    AdminLoginRequest:
+      type: object
+      required:
+        - email
+        - password
+        - deviceType
+      properties:
+        email:
+          type: string
+          format: email
+          example: "admin@example.com"
+        password:
+          type: string
+          format: password
+          example: "securepassword"
+        deviceType:
+          type: string
+          enum: [MOBILE, WEB
+]
+          example: WEB
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    LogoutRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    AdminUnblockOtpRequest:
+      type: object
+      required:
+        - userType
+      properties:
+        userType:
+          type: string
+          enum: [CUSTOMER, GUIDE
+]
+          example: CUSTOMER
+
+    TokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VyX3R5cGUiOiJDVVNUT01FUiIsImV4cCI6MTYxNzAwMDAwMCwiaWF0IjoxNjE2OTk2NDAwLCJpc3MiOiJuaW1idX..."
+        refreshToken:
+          type: string
+          example: "a1b2c3d4e5f6..."
+
+    AccessTokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VyX3R5cGUiOiJDVVNUT01FUiIsImV4cCI6MTYxNzAwMzYwMCwiaWF0IjoxNjE3MDAwMDAwLCJpc3MiOiJuaW1idX..."
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Invalid credentials"
+        details: # Optional field for validation errors
+          type: string
+          example: "Key: 'AdminLoginRequest.Email' Error:Field validation for 'Email' failed on the 'email' tag"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT 

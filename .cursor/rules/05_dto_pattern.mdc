@@ -1,0 +1,18 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# DTO Pattern in Guides Module
+
+To avoid import cycles between the service and handler layers when the service needs to return complex response structures, a `dto` package was introduced within the `guides` module:
+*   [modules/guides/dto/guide_dto.go](mdc:modules/guides/dto/guide_dto.go)
+
+This package contains Data Transfer Objects (DTOs) like `GuideResponse` and `ConsultationPricingResponse`, which define the structure of data returned by the API.
+
+**Key Points:**
+*   The `GuideService` ([modules/guides/service/guide_service.go](mdc:modules/guides/service/guide_service.go)) methods `FindGuideByID` and `GetAllGuides` now return pointers to these DTOs (`*dto.GuideResponse` or `[]*dto.GuideResponse`) instead of the raw database models.
+*   The service layer is responsible for fetching data from repositories (including related data like pricing) and assembling the final DTO.
+*   The handler layer ([modules/guides/handler/guide_handler.go](mdc:modules/guides/handler/guide_handler.go)) receives the pre-assembled DTO from the service and simply encodes it as the HTTP response.
+*   A helper method `mapGuideToResponse` exists in the handler but is primarily used now for handlers that don't get the fully populated DTO from the service (like `CreateGuide`).
+*   To support handlers that still need the raw model (e.g., `UpdateGuide`), a specific service method `GetGuideModelByID` was added.

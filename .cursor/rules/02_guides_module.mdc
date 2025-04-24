@@ -1,0 +1,20 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Guides Module Overview
+
+The `guides` module (`modules/guides/`) manages guide-related operations.
+
+Key components:
+*   **Handler:** [modules/guides/handler/guide_handler.go](mdc:modules/guides/handler/guide_handler.go) - Handles HTTP requests for guide CRUD and listing.
+*   **Service:** [modules/guides/service/guide_service.go](mdc:modules/guides/service/guide_service.go) - Contains business logic. It depends on the `GuideRepository` and the `PricingService`.
+*   **Repository:** [modules/guides/repository/guide_repository.go](mdc:modules/guides/repository/guide_repository.go) - Handles database operations for guides using GORM.
+*   **Models:** (Likely `modules/guides/models/guide.go`) - Defines the core `Guide` struct for the database.
+*   **DTOs:** [modules/guides/dto/guide_dto.go](mdc:modules/guides/dto/guide_dto.go) - Defines response DTOs like `GuideResponse` (which includes pricing).
+*   **Migrations:** `modules/guides/migrations/` - Contains database migrations for the `guides` table.
+
+**Important Patterns:**
+*   The service methods `FindGuideByID` and `GetAllGuides` fetch guide data and associated pricing data (from the `PricingService`) and return combined DTOs (`dto.GuideResponse`).
+*   A separate service method `GetGuideModelByID` exists to allow handlers (like `UpdateGuide`) to fetch the raw `models.Guide` when needed for updates.

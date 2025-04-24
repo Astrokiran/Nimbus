@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	appLogger "nimbus-service/internal/logger"         // Alias to avoid conflict
 	appMiddleware "nimbus-service/internal/middleware" // Alias to avoid conflict
 	"nimbus-service/modules/health"
+
 	// Not needed anymore due to centralized routes registration
 	// "nimbus-service/modules/health"
 	// "nimbus-service/modules/users"
@@ -26,6 +28,7 @@ import (
 	// customerRepo "nimbus-service/modules/customers/repository"
 	// customerRouter "nimbus-service/modules/customers/router"
 	// customerService "nimbus-service/modules/customers/service"
+	"strings" // Ensure strings is imported
 )
 
 // Variables to be set by linker flags during build
@@ -64,23 +67,25 @@ func main() {
 	// Add CORS, other middleware as needed
 
 	// --- Register Module Routes ---
-	// Register all module routes using the centralized function
-	routes.RegisterAllModules(r, database.DB, appLogger.Logger)
+	// Register all module API routes using the centralized function.
+	// It's assumed RegisterAllModules internally handles the /api/v1 prefix now.
+	routes.RegisterAllModules(r, database.DB, cfg, appLogger.Logger)
 
-	// The following code is replaced by routes.RegisterAllModules:
-	// health.RegisterRoutes(r)
-	// users.RegisterRoutes(r, database.DB, appLogger.Logger) // Pass DB and logger dependencies
-	//
-	// // --- ADD CUSTOMER MODULE REGISTRATION ---
-	// // Initialize Customer Module Dependencies
-	// custRepo := customerRepo.NewCustomerRepository(database.DB)
-	// custService := customerService.NewCustomerService(custRepo)
-	// custHandler := customerHandler.NewCustomerHandler(custService)
-	// // Register Customer Routes
-	// customerRouter.RegisterCustomerRoutes(r, custHandler)
-	// // --- END CUSTOMER MODULE REGISTRATION ---
+	// --- Setup Swagger/OpenAPI Documentation ---
+	// 1. Serve the static swagger.yaml file
+	docPath := "./docs"
+	specFile := "swagger.yaml"
+	filePath := filepath.Join(docPath, specFile)
+	r.Get("/swagger/swagger.yaml", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, filePath)
+	})
 
-	log.Info().Msg("Registered routes")
+	// Restore original FileServer logic
+	swaggerUIPath := "./docs/swagger-ui/"
+	fs := http.Dir(swaggerUIPath)
+	FileServer(r, "/swagger", fs)
+
+	log.Info().Msg("Registered routes including Swagger UI at /swagger/")
 
 	// --- Server ---
 	server := &http.Server{
@@ -113,4 +118,26 @@ func main() {
 	}
 
 	log.Info().Msg("Server exiting")
+}
+
+// FileServer is a helper function to serve static files using Chi router.
+// It mimics the behavior of chi.FileServer (which is not directly exported).
+func FileServer(r chi.Router, path string, root http.FileSystem) {
+	if strings.ContainsAny(path, ":*") {
+		panic("FileServer does not permit URL parameters.")
+	}
+
+	// Ensure trailing slash for directory listing and index.html
+	if path != "/" && path[len(path)-1] != '/' {
+		r.Get(path, http.RedirectHandler(path+"/", http.StatusMovedPermanently).ServeHTTP)
+		path += "/"
+	}
+	path += "*" // Match subpaths
+
+	r.Get(path, func(w http.ResponseWriter, r *http.Request) {
+		rctx := chi.RouteContext(r.Context())
+		pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
+		fs := http.StripPrefix(pathPrefix, http.FileServer(root))
+		fs.ServeHTTP(w, r)
+	})
 }

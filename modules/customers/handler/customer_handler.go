@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5" // Import chi
 	// "github.com/gorilla/mux" // Example: if using mux router for path parameters
 
+	"nimbus-service/internal/middleware" // Import middleware to access context keys
 	"nimbus-service/modules/customers/models"
 	"nimbus-service/modules/customers/service"
 	// Import logger if available e.g. "nimbus-service/internal/logger"
@@ -137,7 +138,17 @@ func (h *CustomerHandler) CreateCustomer(w http.ResponseWriter, r *http.Request)
 		tob = &req.TimeOfBirth
 	}
 
+	// --- Retrieve User from context using helper (Updated) ---
+	authenticatedUser := middleware.GetUserFromContext(ctx)
+	if authenticatedUser == nil || authenticatedUser.ID == 0 {
+		// Log this error - indicates an issue with auth middleware or request context
+		// h.logger.Error().Msg("Could not retrieve valid User from context")
+		http.Error(w, "Internal Server Error: Unable to identify authenticated user", http.StatusInternalServerError)
+		return
+	}
+
 	customerModel := &models.Customer{
+		UserID:         authenticatedUser.ID, // Assign the retrieved UserID
 		AreaCode:       req.AreaCode,
 		MobileNumber:   req.MobileNumber,
 		Name:           req.Name,
@@ -150,6 +161,7 @@ func (h *CustomerHandler) CreateCustomer(w http.ResponseWriter, r *http.Request)
 		State:          req.State,
 		Country:        req.Country,
 		Pincode:        req.Pincode,
+		// Auth related fields like OtpSecret are usually handled by the service/repo
 	}
 
 	createdCustomer, err := h.service.CreateNewCustomer(ctx, customerModel)

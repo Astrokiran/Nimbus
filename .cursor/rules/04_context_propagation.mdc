@@ -1,0 +1,16 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Context Propagation Standard
+
+`context.Context` is used throughout the application for request lifecycle management (cancellation, timeouts).
+
+It is passed as the first argument through the layers:
+*   Handler methods receive it from the incoming request (`r.Context()`).
+*   Service methods receive it from handlers.
+*   Repository methods receive it from services.
+*   GORM database operations use `.WithContext(ctx)`.
+
+The `guides` and `customers` modules were refactored to adopt this pattern consistently.

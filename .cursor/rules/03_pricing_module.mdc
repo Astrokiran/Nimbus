@@ -1,0 +1,16 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Pricing Module Overview
+
+The `pricing` module (`modules/pricing/`) is responsible for managing consultation pricing for different entities (like guides).
+
+Key components:
+*   **Service:** [modules/pricing/service/pricing_service.go](mdc:modules/pricing/service/pricing_service.go) - Provides the public API for other modules to get or set pricing (e.g., `GetConsultationPricing`, `GetPricingByEntityIDs`, `SetConsultationPricing`).
+*   **Repository:** [modules/pricing/repository/consultation_pricing_repository.go](mdc:modules/pricing/repository/consultation_pricing_repository.go) - Handles database operations for the `consultation_pricing` table using GORM. Includes a `CreateOrUpdate` method for upserting pricing data.
+*   **Models:** [modules/pricing/models/consultation_pricing.go](mdc:modules/pricing/models/consultation_pricing.go) - Defines the `ConsultationPricing` struct, linking pricing rates to an `EntityType` and `EntityID`.
+*   **Migrations:** `modules/pricing/migrations/` - Contains the `up` and `down` SQL migration files for the `consultation_pricing` table (e.g., [001_create_consultation_pricing_table.up.sql](mdc:modules/pricing/migrations/001_create_consultation_pricing_table.up.sql)).
+
+This module is used by the `guides` module to fetch pricing data.
